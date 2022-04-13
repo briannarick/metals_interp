@@ -1,18 +1,18 @@
 ---
 title: "yojoa heat map"
 author: "Matthew Ross"
-date: "2/22/2019"
+date: "4/11/2022"
 output: html_document
 ---
 
 ```{r}
 library(tidyverse)
-library(sf)
+library(sf) # new good
 library(mapview)
 library(lubridate)
 library(osmdata)
-library(raster)
-library(sp)
+library(raster) #dead to me
+library(sp) # also dead to me
 library(gstat)
 
 ```
@@ -44,10 +44,10 @@ add_osm_feature(key = 'natural', value = 'water') %>%
   st_transform(26716)
 
 
-#Get bboxx info for yojoa
+#Get bbox info for yojoa
 yo_box <- st_bbox(lake)
 
-mapview(ys,zcol='Cu_mg_kg')
+mapview(ys,zcol='Cu_mg_kg') + mapview(lake) + mapview(yo_box)
 ```
 
 ## Make a heatmap
@@ -63,7 +63,7 @@ y.sp <- as(ys.m,'Spatial')
 
 metals = c('Cu_mg_kg','Zn_mg_kg','Cd_mg_kg','Pb_mg_kg')
 
-
+i=1
 for(i in 1:length(metals)){
   
   
@@ -80,6 +80,35 @@ for(i in 1:length(metals)){
     mapview(ys.m,zcol=metals[i])
   mapshot(cu,url=paste0(metals[i],'.html'))
 }
+cu
+```
 
+
+# The new way
+
+```{r}
+library(stars)
+
+lake_stars <- st_bbox(lake) %>% 
+  st_as_stars(dx=100) %>% 
+  st_crop(lake)
+
+interp = idw(Zn_mg_kg~1, y.sp, lake_stars)
+
+
+mapview(interp) + mapview(y.sp, zcol = "Zn_mg_kg")
+```
+
+# Variogram
+
+```{r}
+
+v_zn = variogram(Zn_mg_kg~1, y.sp)
+
+v.m = fit.variogram(v_zn, vgm(1, 'Gau', 50, 1))
+
+plot(v_zn, v.m, plot.numbers = TRUE)
+
+interp_krig = krige(Zn_mg_kg~1, y.sp, lake_stars)
 ```
 
