@@ -24,7 +24,61 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 
+load('data/dailyP.RData')
+
+head(daily_p)
+
+```
+
+# Get elevation data
+
+```{r}
+unique_asos <- daily_p %>% 
+  distinct(station, lon, lat) %>% 
+  st_as_sf(., coords = c("lon", "lat"), crs = 4326) %>% 
+  get_elev_point(.)
+
+#st_write(unique_asos, 'data/unique_asos_elev.gpkg')
+```
+
+# Get Monthly P Averages
+
+```{r}
+monthly_p <- daily_p %>% 
+  mutate(month = month(date)) %>% 
+  group_by(month, station) %>% 
+  summarize(monthly_p = sum(daily_p)) %>% 
+  left_join(unique_asos) # grab elevation data
 
 
+```
+
+## Look at monthly P
+
+```{r}
+ggplot(monthly_p, aes(x = elevation, y = monthly_p, color = month)) +
+  scale_color_viridis_c()+
+  geom_point()
+  
+```
+
+## Getting monthly means of menas, mins, maxs of daily temp
+
+```{r}
+monthly_t <- daily_p %>% 
+  mutate(month = month(date)) %>% 
+  group_by(month, station) %>% 
+  summarize(across(where(is.numeric), mean)) %>% 
+  left_join(unique_asos) # grab elevation data
+
+
+```
+
+## Temp vs elevation
+
+```{r}
+ggplot(monthly_t, aes(y=mean_temp, x = elevation, color = month))+
+  geom_point()+
+  scale_color_viridis_c()
 ```
 
